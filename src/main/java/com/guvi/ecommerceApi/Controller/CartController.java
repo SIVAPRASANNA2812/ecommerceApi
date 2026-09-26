@@ -6,6 +6,8 @@ import com.guvi.ecommerceApi.DTO.CartResponseDTO;
 import com.guvi.ecommerceApi.DTO.UpdateQuantityRequestDTO;
 import com.guvi.ecommerceApi.Model.Cart;
 import com.guvi.ecommerceApi.Service.CartService;
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,33 +22,46 @@ public class CartController {
         this.cartService = cartService;
     }
 
+    // GET /cart (No query param needed! Gets cart of the authenticated user)
     @GetMapping
-    public CartResponseDTO getCart(@RequestParam String userId) {
-        Cart cart = cartService.viewCart(userId);
+    public CartResponseDTO getCart(Authentication authentication) {
+        String username = authentication.getName();
+        Cart cart = cartService.viewCart(username);
         return mapToResponseDTO(cart);
     }
 
+    // POST /cart/items (Only productId and quantity in body)
     @PostMapping("/items")
-    public CartResponseDTO addItem(@RequestBody AddItemRequestDTO request) {
-        Cart cart = cartService.addItem(request.getUserId(), request.getProductId(), request.getQuantity());
+    public CartResponseDTO addItem(@Valid @RequestBody AddItemRequestDTO request,
+                                   Authentication authentication) {
+        String username = authentication.getName();
+        Cart cart = cartService.addItem(username, request.getProductId(), request.getQuantity());
         return mapToResponseDTO(cart);
     }
 
+    // PUT /cart/items/{productId} (Only quantity in body)
     @PutMapping("/items/{productId}")
     public CartResponseDTO updateQuantity(@PathVariable String productId,
-                                          @RequestBody UpdateQuantityRequestDTO request) {
-        Cart cart = cartService.updateQuantity(request.getUserId(), productId, request.getQuantity());
+                                          @Valid @RequestBody UpdateQuantityRequestDTO request,
+                                          Authentication authentication) {
+        String username = authentication.getName();
+        Cart cart = cartService.updateQuantity(username, productId, request.getQuantity());
         return mapToResponseDTO(cart);
     }
 
+    // DELETE /cart/items/{productId} (No userId param needed!)
     @DeleteMapping("/items/{productId}")
     public CartResponseDTO removeItem(@PathVariable String productId,
-                                      @RequestParam String userId) {
-        Cart cart = cartService.removeItem(userId, productId);
+                                      Authentication authentication) {
+        String username = authentication.getName();
+        Cart cart = cartService.removeItem(username, productId);
         return mapToResponseDTO(cart);
     }
 
     private CartResponseDTO mapToResponseDTO(Cart cart) {
+        if (cart == null || cart.getItems() == null) {
+            return new CartResponseDTO(cart != null ? cart.getUserId() : "", List.of());
+        }
         List<CartItemResponseDTO> items = cart.getItems().stream()
                 .map(i -> new CartItemResponseDTO(i.getProductId(), i.getName(), i.getQuantity(), i.getPrice()))
                 .toList();

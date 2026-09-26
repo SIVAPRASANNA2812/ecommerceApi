@@ -1,9 +1,8 @@
 package com.guvi.ecommerceApi.Controller;
 
-import com.guvi.ecommerceApi.DTO.OrderRequestDTO;
 import com.guvi.ecommerceApi.DTO.OrderResponseDTO;
 import com.guvi.ecommerceApi.Service.OrderService;
-import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,27 +12,34 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
 
+    // POST /api/orders/place (Places order for the authenticated user)
     @PostMapping("/place")
-    public OrderResponseDTO placeOrder(@Valid @RequestBody OrderRequestDTO request) {
-        return orderService.placeOrder(request.getUserId());
+    public OrderResponseDTO placeOrder(Authentication authentication) {
+        String username = authentication.getName();
+        return orderService.placeOrder(username);
     }
 
+    // PUT /api/orders/cancel/{orderId}
     @PutMapping("/cancel/{orderId}")
     public OrderResponseDTO cancelOrder(@PathVariable String orderId) {
         return orderService.cancelOrder(orderId);
     }
 
+    // GET /api/orders/{orderId}
     @GetMapping("/{orderId}")
     public OrderResponseDTO viewOrder(@PathVariable String orderId) {
         return orderService.viewOrder(orderId);
     }
 
-    @GetMapping("/user/{userId}")
-    public List<OrderResponseDTO> viewOrdersByUser(@PathVariable String userId) {
-        return orderService.viewOrdersByUser(userId);
+    // GET /api/orders/my-orders (Returns all orders for the currently logged-in user)
+    @GetMapping("/my-orders")
+    public List<OrderResponseDTO> viewMyOrders(Authentication authentication) {
+        String username = authentication.getName();
+        return orderService.viewOrdersByUser(username);
     }
 }

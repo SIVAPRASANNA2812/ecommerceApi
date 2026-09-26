@@ -3,10 +3,15 @@ package com.guvi.ecommerceApi.Service;
 import com.guvi.ecommerceApi.DTO.OrderItemDTO;
 import com.guvi.ecommerceApi.DTO.OrderResponseDTO;
 import com.guvi.ecommerceApi.Entity.OrderStatus;
+import com.guvi.ecommerceApi.Exception.BadRequestException;
+import com.guvi.ecommerceApi.Exception.InsufficientStockException;
+import com.guvi.ecommerceApi.Exception.InvalidOrderStateException;
+import com.guvi.ecommerceApi.Exception.ResourceNotFoundException;
 import com.guvi.ecommerceApi.Model.*;
 import com.guvi.ecommerceApi.Repository.CartRepository;
 import com.guvi.ecommerceApi.Repository.OrderRepository;
 import com.guvi.ecommerceApi.Repository.ProductRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -18,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService{
 
     @Autowired
@@ -40,22 +46,21 @@ public class OrderServiceImpl implements OrderService{
     public OrderResponseDTO placeOrder(String userId) {
         Cart cart = cartRepository.findByUserId(userId);
 
-        if (cart == null || cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty, cannot place order");
+        if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+            throw new BadRequestException("Cart is empty, cannot place order");
         }
 
         //Validating the stock
-        for (CartItems items:cart.getItems()){
+        for (CartItems items : cart.getItems()) {
             Product product = productRepository.findByProductId(items.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + items.getProductId()));
             Query query = new Query(Criteria.where("productId").is(items.getProductId())
                     .and("stockQuantity").gte(items.getQuantity()));
             Update update = new Update().inc("stockQuantity", -items.getQuantity());
 
             Product updated = mongoTemplate.findAndModify(query, update, Product.class);
             if (updated == null) {
-                throw new RuntimeException("Insufficient stock for product: " + items.getProductId());
+                throw new InsufficientStockException("Insufficient stock for product: " + items.getProductId());
             }
         }
 
@@ -71,6 +76,9 @@ public class OrderServiceImpl implements OrderService{
         Order order = new Order(null, userId, orderitems, totalAmount, OrderStatus.PLACED);
         Order savedOrder = orderRepository.save(order);
 
+        log.info("Order successfully placed! orderId: {}, userId: {}, totalAmount: {}",
+                savedOrder.getOrderId(), userId, totalAmount);
+
         //clear cart
         cart.setItems(List.of());
         cartRepository.save(cart);
@@ -81,14 +89,12 @@ public class OrderServiceImpl implements OrderService{
     @Override
     public OrderResponseDTO cancelOrder(String orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        // Validate state transitions
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
         if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Order is already cancelled");
+            throw new InvalidOrderStateException("Order is already cancelled");
         }
         if (order.getStatus() == OrderStatus.SHIPPED) {
-            throw new RuntimeException("Shipped orders cannot be cancelled");
+            throw new InvalidOrderStateException("Shipped orders cannot be cancelled");
         }
 
         // Restore stock for each item
@@ -96,6 +102,7 @@ public class OrderServiceImpl implements OrderService{
             Query query = new Query(Criteria.where("productId").is(item.getProductId()));
             Update update = new Update().inc("stockQuantity", item.getQuantity());
             mongoTemplate.updateFirst(query, update, Product.class);
+            log.info("Order {} successfully CANCELLED and stock restored", orderId);
         }
 
         order.setStatus(OrderStatus.CANCELLED);
@@ -106,7 +113,7 @@ public class OrderServiceImpl implements OrderService{
     @Override
     public OrderResponseDTO viewOrder(String orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
         return mapToResponseDTO(order);
     }
 

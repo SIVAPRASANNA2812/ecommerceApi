@@ -3,6 +3,7 @@ package com.guvi.ecommerceApi.Service;
 import com.guvi.ecommerceApi.DTO.LoginDTO;
 import com.guvi.ecommerceApi.DTO.SignUpDTO;
 import com.guvi.ecommerceApi.Entity.Role;
+import com.guvi.ecommerceApi.Exception.UserAlreadyExistsException;
 import com.guvi.ecommerceApi.Model.User;
 import com.guvi.ecommerceApi.Repository.UserRepository;
 import com.guvi.ecommerceApi.Security.JwtUtil;
@@ -36,7 +37,7 @@ public class AuthService {
 
     public String signup(SignUpDTO signUpDTO) {
         if (userRepository.existsByUsername(signUpDTO.getUsername())) {
-            return "username already exists";
+            throw new UserAlreadyExistsException("Username '" + signUpDTO.getUsername() + "' is already taken");
         }
 
         User user = new User();
