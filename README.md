@@ -8,8 +8,8 @@ A scalable, production-ready E-Commerce Backend RESTful API built with **Java (S
 
 | Resource | Link |
 | :--- | :--- |
-| **Live API Base URL** | `https://ecommerce-api-production.up.railway.app` *(Replace with your deployed EC2/Railway/Render URL)* |
-| **Interactive Swagger UI** | `http://localhost:8080/swagger-ui/index.html` (Local) / `/swagger-ui/index.html` (Live) |
+| **Live API Base URL** | `http://16.113.142.214:8080`
+| **Interactive Swagger UI** | `http://16.113.142.214:8080/swagger-ui/index.html` (Live) |
 | **OpenAPI 3 JSON Specification** | `http://localhost:8080/v3/api-docs` |
 
 ---
