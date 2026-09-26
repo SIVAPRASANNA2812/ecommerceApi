@@ -8,9 +8,11 @@ A scalable, production-ready E-Commerce Backend RESTful API built with **Java (S
 
 | Resource | Link |
 | :--- | :--- |
-| **Live API Base URL** | `http://16.113.142.214:8080`
-| **Interactive Swagger UI** | `http://16.113.142.214:8080/swagger-ui/index.html` (Live) |
+| **Live API AWS EC2 Base URL** | `http://16.113.142.214:8080`
+| **Interactive AWS EC2 Swagger UI** | `http://16.113.142.214:8080/swagger-ui/index.html` (Live) |
 | **OpenAPI 3 JSON Specification** | `http://localhost:8080/v3/api-docs` |
+| **Live API Render Base URL** | `https://ecommerceapi-urav.onrender.com` |
+| **Interactive Render Swagger UI** | `https://ecommerceapi-urav.onrender.com/swagger-ui/index.html` |
 
 ---
 
